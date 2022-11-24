@@ -32,7 +32,7 @@ class Calculator:
             (
                 record.amount
                 for record in self.records
-                if record.date >= get_day_a_week_ago()
+                if get_day_a_week_ago() < record.date <= dt.now().date()
             )
         )
 
@@ -40,31 +40,24 @@ class Calculator:
 class CaloriesCalculator(Calculator):
     """Calorie calculator."""
 
-    def get_calories_remained(self) -> None:
+    def get_calories_remained(self) -> str:
         """Calculates the calorie remained for today."""
         remainder = self.limit - self.get_today_stats()
         if remainder > 0:
-            print(
+            return (
                 "Сегодня можно съесть что-нибудь ещё, "
                 f"но с общей калорийностью не более {remainder:.0f} кКал"
             )
-        else:
-            print("Хватит есть!")
+        return "Хватит есть!"
 
 
 class CashCalculator(Calculator):
     """Money calculator."""
 
     USD_RATE = 60.5043
-    EUR_RATE = 62.2850
+    EURO_RATE = 62.2850
 
-    сurrency_signs = {
-        "usd": (USD_RATE, "USD"),
-        "eur": (EUR_RATE, "Euro"),
-        "rub": (1.0, "руб"),
-    }
-
-    def get_today_cash_remained(self, currency: str) -> None:
+    def get_today_cash_remained(self, currency: str) -> str:
         """
         Returns a message about the status of
         the daily balance in the currency.
@@ -72,34 +65,35 @@ class CashCalculator(Calculator):
         :param currency: currency - "usd"/"eur"/"rub"
         :return: None
         """
-        currency_contraction = self.сurrency_signs[currency][1]
-        remainder = float(
-            ((self.limit - self.get_today_stats()) * self.сurrency_signs[currency][0])
-        )
+        сurrency_signs = {
+            "usd": (self.USD_RATE, "USD"),
+            "eur": (self.EURO_RATE, "Euro"),
+            "rub": (1.0, "руб"),
+        }
+        currency_contraction = сurrency_signs[currency][1]
+        remainder = float(self.limit - self.get_today_stats())
         if remainder == 0:
-            print("Денег нет, держись")
-        elif remainder > 0:
-            print(f"На сегодня осталось {remainder:.2f} {currency_contraction}")
-        elif remainder < 0:
-            print(
-                f"Денег нет, держись: твой долг - {remainder:.2f} {currency_contraction}"
-            )
+            return "Денег нет, держись"
+        ballanse = round(abs(remainder / сurrency_signs[currency][0]), 2)
+        if remainder > 0:
+            return f"На сегодня осталось {ballanse} {currency_contraction}"
+        return f"Денег нет, держись: твой долг - {ballanse} {currency_contraction}"
 
 
 class Record:
     """A class describing a single entry."""
 
-    def __init__(self, amount: int, comment: str, date=dt.now()):
+    def __init__(self, amount: int, comment: str, date=None):
         self.amount = amount
         self.comment = comment
-        if date == dt.now():
-            self.date = date.date()
+        if date is None:
+            self.date = dt.now().date()
         else:
             self.date = dt.strptime(date, "%d.%m.%Y").date()
 
 
 if __name__ == "__main__":
-    cash_calculator = CaloriesCalculator(545)
-    cash_calculator.add_record(Record(amount=145, comment="Кофе"))
-    cash_calculator.add_record(Record(amount=300, comment="Булочка"))
-    cash_calculator.get_calories_remained()
+    cash_calculator = CashCalculator(545)
+    cash_calculator.add_record(Record(amount=1, comment="Кофе"))
+    cash_calculator.add_record(Record(amount=2, comment="Булочка"))
+    print(cash_calculator.get_today_cash_remained("rub"))
